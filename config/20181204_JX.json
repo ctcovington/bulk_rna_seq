@@ -1,0 +1,21 @@
+{
+    "## General Parameters ##": "Parameters for general pipeline setup",
+    "bulk_rna_seq.experiment_name": "20181204_JX",
+    "bulk_rna_seq.experiment_type": "WholeTranscriptome_RNASeq",
+
+    "## Data Parameters ##": "Parameters related to the data",
+    "bulk_rna_seq.input_data_type": "bcl",
+
+    "## Experimental Parameters ##": "Parameters related to the experiment",
+    "bulk_rna_seq.organism": "mouse",
+
+    "## Preprocessing Parameters ##": "Parameters related to data processing",
+    "bulk_rna_seq.reference_transcriptome": "gs://rnaseq_reference_data/transcriptome/Mus_musculus.GRCm38.cdna.all.fa.gz",
+
+    "## Analysis Parameters ##": "Parameters related to the analysis of the experiment",
+
+    "## File Path Parameters ##": "Parameters identifying paths to files and directories",
+    "bulk_rna_seq.read_pairs_file": "gs://genomics_xavier_bucket/WholeTranscriptome_RNASeq/20181204_JX/data/read_pairs.tsv",
+    "bulk_rna_seq.samples_described_file": "gs://genomics_xavier_bucket/WholeTranscriptome_RNASeq/20181204_JX/data/samples_described.tsv",
+    "bulk_rna_seq.samples_compared_file": "gs://genomics_xavier_bucket/WholeTranscriptome_RNASeq/20181204_JX/data/samples_compared.tsv"
+}
