@@ -31,86 +31,89 @@ if (organism == 'human') {
     ensembl <- useDataset('mmusculus_gene_ensembl', useMart('ensembl'))
 }
 
-####################################################################
-### sleuth version                                               ###
-####################################################################
-# run Sleuth if and only if samples_described and samples_compared are not empty
-if (file.info(samples_described_path)$size != 0 & file.info(samples_compared_path)$size != 0) {
-    # create transcript to symbol mapping
-    if (organism == 'human') {
-        mart <- useMart(biomart = 'ENSEMBL_MART_ENSEMBL',
-                                 dataset = 'hsapiens_gene_ensembl',
-                                 host = 'ensembl.org')
-        t2g <- getBM(attributes = c('ensembl_transcript_id', 'hgnc_symbol'), mart = mart)
-        t2g <- dplyr::rename(t2g, target_id = ensembl_transcript_id, gene = hgnc_symbol)
-
-    } else if (organism == 'mouse') {
-        mart <- useMart(biomart = 'ENSEMBL_MART_ENSEMBL',
-                                 dataset = 'mmusculus_gene_ensembl',
-                                 host = 'ensembl.org')
-        t2g <- getBM(attributes = c('ensembl_transcript_id', 'mgi_symbol'), mart = mart)
-        t2g <- dplyr::rename(t2g, target_id = ensembl_transcript_id, gene = mgi_symbol)
-    }
-    # NOTE: some transcripts map to multiple genes -- so here I combine the gene names for those transcripts
-    t2g <- aggregate(gene ~ target_id, data = t2g, paste, sep = '_')
-
-    # get list of sample IDs
-    sample_id <- dir(transcript_counts_dir)
-
-    # create list of paths to each directory
-    kal_dirs <- file.path(transcript_counts_dir, sample_id)
-
-    # load sample information
-    s2c <- data.table(read.table(samples_described_path))
-    s2c[, path := kal_dirs]
-    setnames(s2c, names(s2c), c('condition', 'sample', 'path'))
-
-    # iterate over samples and remove those with < 30% alignment
-    for (directory in s2c[, path]) {
-        # extract sample name
-        sample_name <- str_replace(basename(directory), '_S[0-9]_001', '')
-
-        # load run info
-        qc <- fromJSON(file.path(directory, 'run_info.json'))
-
-        # get percentage pseudoaligned
-        percentage_aligned <- qc$p_pseudoaligned
-
-        # remove samples with < 30% alignment
-        if (percentage_aligned < 30) {
-            s2c <- s2c[sample != sample_name]
-        }
-    }
-
-    # generate list of differential expressioncomparisons
-    comparisons <- fread(samples_compared_path, header = FALSE, sep = '\t')
-
-    # for each comparison; initialize sleuth object, set up models, run differential expression, and output table
-    for (comparison in comparisons$V1) {
-        # identify relevant comparison and samples
-        conditions <- str_split(comparison, '_vs_')[[1]]
-        samples_a <- which(s2c$condition == conditions[1])
-        samples_b <- which(s2c$condition == conditions[2])
-
-        # initialize sleuth object by identifying samples of interest and aggregating counts at the gene level
-        so <- sleuth_prep(s2c[c(samples_a, samples_b)], target_mapping = t2g, aggregation_column = 'gene', 'gene_mode' = TRUE, extra_bootstrap_summary = TRUE)
-
-        # fit models
-        so <- sleuth_fit(so, ~ condition, 'full') # fit full model
-        so <- sleuth_fit(so, ~ 1, 'reduced') # fit reduced model
-        so <- sleuth_lrt(so, 'reduced', 'full') # test difference in models
-
-        # create differential expression table
-        sleuth_table <- data.table(sleuth_results(so, 'reduced:full', 'lrt', pval_aggregate = FALSE, show_all = FALSE))
-
-        # clean up differential expression table
-        setnames(sleuth_table, 'target_id', 'gene')
-        sleuth_table <- sleuth_table[gene != ''] # remove unnamed genes
-
-        # print sleuth_table to file
-        fwrite(sleuth_table, file.path(output_dir, sprintf('%s_diff_exp.tsv', comparison)), sep = '\t')
-    }
-}
+# ####################################################################
+# ### sleuth version                                               ###
+# ####################################################################
+# # run Sleuth if and only if samples_described and samples_compared are not empty
+# if (file.info(samples_described_path)$size != 0 & file.info(samples_compared_path)$size != 0) {
+#     # create transcript to symbol mapping
+#     if (organism == 'human') {
+#         mart <- useMart(biomart = 'ENSEMBL_MART_ENSEMBL',
+#                                  dataset = 'hsapiens_gene_ensembl',
+#                                  host = 'ensembl.org')
+#         t2g <- getBM(attributes = c('ensembl_transcript_id', 'hgnc_symbol'), mart = mart)
+#         t2g <- dplyr::rename(t2g, target_id = ensembl_transcript_id, gene = hgnc_symbol)
+#
+#     } else if (organism == 'mouse') {
+#         mart <- useMart(biomart = 'ENSEMBL_MART_ENSEMBL',
+#                                  dataset = 'mmusculus_gene_ensembl',
+#                                  host = 'ensembl.org')
+#         t2g <- getBM(attributes = c('ensembl_transcript_id', 'mgi_symbol'), mart = mart)
+#         t2g <- dplyr::rename(t2g, target_id = ensembl_transcript_id, gene = mgi_symbol)
+#     }
+#     # NOTE: some transcripts map to multiple genes -- so here I combine the gene names for those transcripts
+#     t2g <- aggregate(gene ~ target_id, data = t2g, paste, sep = '_')
+#
+#     # get list of sample IDs
+#     sample_id <- dir(transcript_counts_dir)
+#
+#     # create list of paths to each directory
+#     kal_dirs <- file.path(transcript_counts_dir, sample_id)
+#
+#     # load sample information
+#     s2c <- data.table(read.table(samples_described_path))
+#     s2c[, path := kal_dirs]
+#     setnames(s2c, names(s2c), c('condition', 'sample', 'path'))
+#
+#     # iterate over samples and remove those with < 30% alignment
+#     for (directory in s2c[, path]) {
+#         # extract sample name
+#         sample_name <- str_replace(basename(directory), '_S[0-9]_001', '')
+#
+#         # load run info
+#         qc <- fromJSON(file.path(directory, 'run_info.json'))
+#
+#         # get percentage pseudoaligned
+#         percentage_aligned <- qc$p_pseudoaligned
+#
+#         # remove samples with < 30% alignment
+#         if (percentage_aligned < 30) {
+#             s2c <- s2c[sample != sample_name]
+#         }
+#     }
+#
+#     # generate list of differential expressioncomparisons
+#     comparisons <- fread(samples_compared_path, header = FALSE, sep = '\t')
+#
+#     # for each comparison; initialize sleuth object, set up models, run differential expression, and output table
+#     for (comparison in comparisons$V1) {
+#         cat(sprintf('Performing Sleuth differential expression for %s\n\n', comparison))
+#         # identify relevant comparison and samples
+#         conditions <- str_split(comparison, '_vs_')[[1]]
+#         samples_a <- which(s2c$condition == conditions[1])
+#         samples_b <- which(s2c$condition == conditions[2])
+#
+#         # initialize sleuth object by identifying samples of interest and aggregating counts at the gene level
+#         so <- sleuth_prep(s2c[c(samples_a, samples_b)], target_mapping = t2g, aggregation_column = 'gene', 'gene_mode' = TRUE, extra_bootstrap_summary = TRUE)
+#
+#         # fit models
+#         so <- sleuth_fit(so, ~ condition, 'full') # fit full model
+#         so <- sleuth_fit(so, ~ 1, 'reduced') # fit reduced model
+#         so <- sleuth_lrt(so, 'reduced', 'full') # test difference in models
+#
+#         # create differential expression table
+#         sleuth_table <- data.table(sleuth_results(so, 'reduced:full', 'lrt', pval_aggregate = FALSE, show_all = FALSE))
+#
+#         # clean up differential expression table
+#         setnames(sleuth_table, 'target_id', 'gene')
+#         sleuth_table <- sleuth_table[gene != ''] # remove unnamed genes
+#
+#         # print sleuth_table to file
+#         fwrite(sleuth_table, file.path(output_dir, sprintf('%s_diff_exp.tsv', comparison)), sep = '\t')
+#
+#         cat('\n')
+#     }
+# }
 
 
 ####################################################################
