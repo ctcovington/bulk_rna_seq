@@ -2,6 +2,9 @@
 FROM debian:testing
 # FROM ubuntu:18.04
 
+# test addition
+RUN mkdir /test
+
 # Prepare directory structure
 RUN mkdir /tools
 
@@ -17,7 +20,7 @@ ENV PATH="/tools:${PATH}"
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3.6 \
-    # python-pip \
+    python3-pip \
     default-jre \
     curl \
     alien \
@@ -155,8 +158,9 @@ RUN git clone https://github.com/pachterlab/kallisto.git && \
 ENV PATH="${PATH}:/tools/kallisto"
 
 # pip
-RUN wget https://bootstrap.pypa.io/get-pip.py && \
-    python3.6 get-pip.py
+
+# RUN wget https://bootstrap.pypa.io/get-pip.py && \
+#     python3.6 get-pip.py
 
 # multiqc
 RUN python3.6 -m pip install setuptools && \
