@@ -125,7 +125,7 @@ task bcl2fastq_and_define_read_pairs {
             gsutil -m cp read_pairs.tsv ${read_pairs_file} # write read_pairs.tsv file we generated to the specified read_pairs_file location
         else
             # localize read_pairs file
-            gsutil -m cp ${read_pairs_file} ./
+            gsutil -m cp ${read_pairs_file} ./read_pairs.tsv
         fi
     >>>
 
