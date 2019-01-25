@@ -139,7 +139,7 @@ task bcl2fastq_and_define_read_pairs {
 		cpu: 4
   		memory: "50GB"
   		preemptible: 2
-  		disks: "local-disk 80 HDD"
+  		disks: "local-disk 160 HDD"
     }
 }
 
@@ -191,7 +191,7 @@ task build_kallisto_index {
 		cpu: 4
   		memory: "16GB"
   		preemptible: 2
-  		disks: "local-disk 30 HDD"
+  		disks: "local-disk 80 HDD"
     }
 }
 
@@ -223,7 +223,7 @@ task unzip_file {
 		cpu: 4
   		memory: "8GB"
   		preemptible: 2
-  		disks: "local-disk 30 HDD"
+  		disks: "local-disk 80 HDD"
     }
 }
 
@@ -258,7 +258,7 @@ task perform_fastqc {
         cpu: 4
         memory: "4GB"
         preemptible: 2
-        disks: "local-disk 30 HDD"
+        disks: "local-disk 80 HDD"
     }
 }
 
@@ -298,7 +298,7 @@ task perform_kallisto_quantification {
 		cpu: 12
   		memory: "8GB"
   		preemptible: 2
-  		disks: "local-disk 30 HDD"
+  		disks: "local-disk 80 HDD"
     }
 }
 
@@ -332,19 +332,23 @@ task counts_and_differential_expression_output {
         # run kallisto_output
         mkdir -p ./kallisto_output
         Rscript /scripts/get_kallisto_counts.R ./transcript_counts ${organism} samples_described.tsv samples_compared.tsv ./kallisto_output
+        # tar output
+        tar zcfv kallisto_output.tar.gz ./kallisto_output
+        # copy output to google bucket
+        gsutil -m cp -r ./kallisto_output gs://genomics_xavier_bucket/${experiment_type}/${experiment_name}/
 
         # run edgeR
         mkdir -p ./edgeR_output
-        Rscript /scripts/run_edgeR.R ./kallisto_output/kallisto_counts.csv samples_described.tsv samples_compared.tsv ./edgeR_output
+        if ! [ -s samples_described.tsv ] && ! [ -s samples_compared.tsv ]; then
+            Rscript /scripts/run_edgeR.R ./kallisto_output/kallisto_counts.csv samples_described.tsv samples_compared.tsv ./edgeR_output
+        fi
 
         # tar output
-        tar zcfv kallisto_output.tar.gz ./kallisto_output
         tar zcfv edgeR_output.tar.gz ./edgeR_output
-
         # copy output to google bucket
-        gsutil -m cp -r ./kallisto_output gs://genomics_xavier_bucket/${experiment_type}/${experiment_name}/
-        gsutil -m cp -r ./edgeR_output gs://genomics_xavier_bucket/${experiment_type}/${experiment_name}/
-
+        if ! [ -s samples_described.tsv ] && ! [ -s samples_compared.tsv ]; then
+            gsutil -m cp -r ./edgeR_output gs://genomics_xavier_bucket/${experiment_type}/${experiment_name}/
+        fi
     >>>
 
     output {
@@ -358,7 +362,7 @@ task counts_and_differential_expression_output {
 		cpu: 4
   		memory: "40GB"
   		preemptible: 2
-  		disks: "local-disk 50 HDD"
+  		disks: "local-disk 100 HDD"
     }
 }
 
@@ -397,6 +401,6 @@ task perform_multiqc {
 		cpu: 4
   		memory: "8GB"
   		preemptible: 2
-  		disks: "local-disk 20 HDD"
+  		disks: "local-disk 80 HDD"
     }
 }
