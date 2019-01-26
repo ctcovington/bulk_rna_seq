@@ -139,7 +139,7 @@ task bcl2fastq_and_define_read_pairs {
 		cpu: 4
   		memory: "50GB"
   		preemptible: 2
-  		disks: "local-disk 80 HDD"
+  		disks: "local-disk 160 HDD"
     }
 }
 
@@ -191,7 +191,7 @@ task build_kallisto_index {
 		cpu: 4
   		memory: "16GB"
   		preemptible: 2
-  		disks: "local-disk 30 HDD"
+  		disks: "local-disk 80 HDD"
     }
 }
 
@@ -223,7 +223,7 @@ task unzip_file {
 		cpu: 4
   		memory: "8GB"
   		preemptible: 2
-  		disks: "local-disk 30 HDD"
+  		disks: "local-disk 80 HDD"
     }
 }
 
@@ -258,7 +258,7 @@ task perform_fastqc {
         cpu: 4
         memory: "4GB"
         preemptible: 2
-        disks: "local-disk 30 HDD"
+        disks: "local-disk 80 HDD"
     }
 }
 
@@ -298,7 +298,7 @@ task perform_kallisto_quantification {
 		cpu: 12
   		memory: "8GB"
   		preemptible: 2
-  		disks: "local-disk 30 HDD"
+  		disks: "local-disk 80 HDD"
     }
 }
 
@@ -362,7 +362,7 @@ task counts_and_differential_expression_output {
 		cpu: 4
   		memory: "40GB"
   		preemptible: 2
-  		disks: "local-disk 50 HDD"
+  		disks: "local-disk 100 HDD"
     }
 }
 
@@ -401,6 +401,6 @@ task perform_multiqc {
 		cpu: 4
   		memory: "8GB"
   		preemptible: 2
-  		disks: "local-disk 20 HDD"
+  		disks: "local-disk 80 HDD"
     }
 }
