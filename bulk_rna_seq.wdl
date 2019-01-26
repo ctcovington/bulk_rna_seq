@@ -332,19 +332,23 @@ task counts_and_differential_expression_output {
         # run kallisto_output
         mkdir -p ./kallisto_output
         Rscript /scripts/get_kallisto_counts.R ./transcript_counts ${organism} samples_described.tsv samples_compared.tsv ./kallisto_output
+        # tar output
+        tar zcfv kallisto_output.tar.gz ./kallisto_output
+        # copy output to google bucket
+        gsutil -m cp -r ./kallisto_output gs://genomics_xavier_bucket/${experiment_type}/${experiment_name}/
 
         # run edgeR
         mkdir -p ./edgeR_output
-        Rscript /scripts/run_edgeR.R ./kallisto_output/kallisto_counts.csv samples_described.tsv samples_compared.tsv ./edgeR_output
+        if [ -s samples_described.tsv ] && [ -s samples_compared.tsv ]; then
+            Rscript /scripts/run_edgeR.R ./kallisto_output/kallisto_counts.csv samples_described.tsv samples_compared.tsv ./edgeR_output
+        fi
 
         # tar output
-        tar zcfv kallisto_output.tar.gz ./kallisto_output
         tar zcfv edgeR_output.tar.gz ./edgeR_output
-
         # copy output to google bucket
-        gsutil -m cp -r ./kallisto_output gs://genomics_xavier_bucket/${experiment_type}/${experiment_name}/
-        gsutil -m cp -r ./edgeR_output gs://genomics_xavier_bucket/${experiment_type}/${experiment_name}/
-
+        if [ -s samples_described.tsv ] && [ -s samples_compared.tsv ]; then
+            gsutil -m cp -r ./edgeR_output gs://genomics_xavier_bucket/${experiment_type}/${experiment_name}/
+        fi
     >>>
 
     output {
