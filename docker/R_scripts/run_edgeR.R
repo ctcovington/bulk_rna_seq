@@ -260,7 +260,6 @@ combine_edgeR_results <- function(out_dir) {
     fwrite(combined_edgeR, file.path(out_dir, 'combined_edgeR.tsv'), sep = '\t')
 }
 
-
 # main
 main <- function() {
     args = commandArgs(trailingOnly=TRUE)
@@ -271,14 +270,14 @@ main <- function() {
     dir.create(out_dir, showWarnings = FALSE)
 
     counts = read.csv(counts_file, row.names=1)
-    names(counts) <- str_replace_all(names(counts), '_S[0-9]+', '')
 
     design = get_simple_design(samples_file)
     rownames(design) <- make.names(str_trim(rownames(design)))
 
-    # re-order samples in count matrix to agree with design matrix
-    # print(as.vector(make.names(rownames(design))))
-    # print(colnames(counts))
+    if (!setequal(names(counts), rownames(design))) {
+        names(counts) <- str_replace_all(names(counts), '_S[0-9]+', '')
+    }
+
     counts.new = counts[, make.names(rownames(design))]
 
     contrasts = get_simple_contrasts(comparisons_file, design)
