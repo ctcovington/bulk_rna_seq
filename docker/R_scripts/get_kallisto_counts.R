@@ -186,5 +186,5 @@ setnames(kallisto_counts, count_names, count_names_cleaned)
 fwrite(kallisto_counts, file.path(output_dir, 'kallisto_counts_unrounded.csv'))
 
 # write rounded version to file
-kallisto_counts[, (count_names) := lapply(.SD, round), .SDcols = count_names]
+kallisto_counts[, (count_names_cleaned) := lapply(.SD, round), .SDcols = count_names_cleaned]
 fwrite(kallisto_counts, file.path(output_dir, 'kallisto_counts.csv'))
