@@ -179,8 +179,12 @@ kallisto_counts <- kallisto_counts[order(gene)]
 
 # round counts and clean count names
 count_names <- setdiff(names(kallisto_counts), 'gene')
-kallisto_counts[, (count_names) := lapply(.SD, round), .SDcols = count_names]
-setnames(kallisto_counts, count_names, str_replace(count_names, '_001', ''))
+count_names_cleaned <- str_replace(count_names, '_001', '')
+setnames(kallisto_counts, count_names, count_names_cleaned)
 
-# write to file
+# write unrounded version to file
+fwrite(kallisto_counts, file.path(output_dir, 'kallisto_counts_unrounded.csv'))
+
+# write rounded version to file
+kallisto_counts[, (count_names) := lapply(.SD, round), .SDcols = count_names]
 fwrite(kallisto_counts, file.path(output_dir, 'kallisto_counts.csv'))
