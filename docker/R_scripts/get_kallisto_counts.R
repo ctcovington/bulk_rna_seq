@@ -31,6 +31,8 @@ if (organism == 'human') {
     ensembl <- useDataset('mmusculus_gene_ensembl', useMart('ensembl'))
 }
 
+
+# NOTE: Not currently running sleuth because people weren't used to the output
 # ####################################################################
 # ### sleuth version                                               ###
 # ####################################################################
@@ -138,10 +140,18 @@ setnames(tx2gene, names(tx2gene), c('TXNAME', 'GENEID'))
 #############################
 abundance_files <- file.path(kal_dirs, 'abundance.h5')
 names(abundance_files) <- sample_id
-kallisto_object <- tximport(abundance_files, type = 'kallisto', tx2gene = tx2gene, ignoreTxVersion = TRUE)
-gene_names <- row.names(kallisto_object$counts)
-kallisto_counts <- data.table(kallisto_object$counts)
-kallisto_counts[, gene := gene_names]
+
+# get transcript counts
+transcript_object <- tximport(abundance_files, type = 'kallisto', txOut = TRUE, ignoreTxVersion = TRUE)
+transcript_names <- row.names(transcript_object$counts)
+transcript_counts <- data.table(transcript_object$counts)
+transcript_counts[, transcript := transcript_names]
+
+# get gene counts
+gene_object <- tximport(abundance_files, type = 'kallisto', tx2gene = tx2gene, ignoreTxVersion = TRUE)
+gene_names <- row.names(gene_object$counts)
+gene_counts <- data.table(gene_object$counts)
+gene_counts[, gene := gene_names]
 
 # replace ensembl gene ID with HGNC/MGI symbol
 # NOTE: hgnc/mgi symbol will still be under the name 'GENEID' because that is what tximport expects
@@ -157,34 +167,37 @@ if (organism == 'human') {
     gene_map <- data.table(getBM(attributes = c('ensembl_gene_id', 'mgi_symbol'), mart = mart))
 }
 setnames(gene_map, 'ensembl_gene_id', 'gene')
-kallisto_counts <- merge(x = kallisto_counts, y = gene_map, all.x = TRUE, by = c('gene'))
+gene_counts <- merge(x = gene_counts, y = gene_map, all.x = TRUE, by = c('gene'))
 if (organism == 'human') {
-    kallisto_counts[, gene := hgnc_symbol]
-    kallisto_counts[, hgnc_symbol := NULL]
+    gene_counts[, gene := hgnc_symbol]
+    gene_counts[, hgnc_symbol := NULL]
 } else if (organism == 'mouse') {
-    kallisto_counts[, gene := mgi_symbol]
-    kallisto_counts[, mgi_symbol := NULL]
+    gene_counts[, gene := mgi_symbol]
+    gene_counts[, mgi_symbol := NULL]
 }
 
 # sum over rows with same hgnc/mgi symbol
-count_cols <- setdiff(names(kallisto_counts), 'gene')
-kallisto_counts[, (count_cols) := lapply(.SD, sum), by = gene, .SDcols = count_cols]
-kallisto_counts <- unique(kallisto_counts)
+count_cols <- setdiff(names(gene_counts), 'gene')
+gene_counts[, (count_cols) := lapply(.SD, sum), by = gene, .SDcols = count_cols]
+gene_counts <- unique(gene_counts)
 
 # remove missing genes
-kallisto_counts <- kallisto_counts[gene != '' & !is.na(gene)]
+gene_counts <- gene_counts[gene != '' & !is.na(gene)]
 
 # sort alphabetically by gene
-kallisto_counts <- kallisto_counts[order(gene)]
+gene_counts <- gene_counts[order(gene)]
 
 # round counts and clean count names
-count_names <- setdiff(names(kallisto_counts), 'gene')
+count_names <- setdiff(names(gene_counts), 'gene')
 count_names_cleaned <- str_replace(count_names, '_001', '')
-setnames(kallisto_counts, count_names, count_names_cleaned)
+setnames(gene_counts, count_names, count_names_cleaned)
 
-# write unrounded version to file
-fwrite(kallisto_counts, file.path(output_dir, 'kallisto_counts_unrounded.csv'))
+# write transcript counts to file
+fwrite(transcript_counts, file.path(output_dir, 'kallisto_transcript_counts.csv'))
 
-# write rounded version to file
-kallisto_counts[, (count_names_cleaned) := lapply(.SD, round), .SDcols = count_names_cleaned]
-fwrite(kallisto_counts, file.path(output_dir, 'kallisto_counts.csv'))
+# write unrounded gene counts to file
+fwrite(gene_counts, file.path(output_dir, 'kallisto_gene_counts_unrounded.csv'))
+
+# write rounded gene counts to file
+gene_counts[, (count_names_cleaned) := lapply(.SD, round), .SDcols = count_names_cleaned]
+fwrite(gene_counts, file.path(output_dir, 'kallisto_gene_counts_rounded.csv'))
