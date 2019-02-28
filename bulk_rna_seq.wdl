@@ -9,6 +9,27 @@ workflow bulk_rna_seq {
     String samples_described_file
     String samples_compared_file
 
+    Int? bcl2fastq_and_define_read_pairs_RAM = 50
+    Int? bcl2fastq_and_define_read_pairs_disk_space = 80
+
+    Int? build_kallisto_index_RAM = 16
+    Int? build_kallisto_index_disk_space = 30
+
+    Int? unzip_file_RAM = 8
+    Int? unzip_file_disk_space = 30
+
+    Int? perform_fastqc_RAM = 4
+    Int? perform_fastqc_disk_space = 30
+
+    Int? perform_kallisto_quantification_RAM = 8
+    Int? perform_kallisto_quantification_disk_space = 30
+
+    Int? counts_and_differential_expression_output_RAM = 40
+    Int? counts_and_differential_expression_output_disk_space = 50
+
+    Int? perform_multiqc_RAM = 8
+    Int? perform_multiqc_disk_space = 20
+
     # run bcl2fastq
     call bcl2fastq_and_define_read_pairs {
         input:
@@ -98,6 +119,9 @@ task bcl2fastq_and_define_read_pairs {
     String experiment_type
     String read_pairs_file
 
+    Int bcl2fastq_and_define_read_pairs_RAM
+    Int bcl2fastq_and_define_read_pairs_hard_disk_space
+
     command <<<
         set -e
 
@@ -137,9 +161,9 @@ task bcl2fastq_and_define_read_pairs {
         docker: "gcr.io/genomics-xavier/bulk_rna_seq"
         zones: "us-east1-b us-east1-c us-east1-d"
 		cpu: 4
-  		memory: "50GB"
+  		memory: "${bcl2fastq_and_define_read_pairs_RAM}GB"
   		preemptible: 2
-  		disks: "local-disk 160 HDD"
+  		disks: "local-disk ${bcl2fastq_and_define_read_pairs_hard_disk_space} HDD"
     }
 }
 
@@ -147,6 +171,9 @@ task build_kallisto_index {
     File reference_transcriptome
     String experiment_name
     String experiment_type
+
+    Int build_kallisto_index_RAM
+    Int build_kallisto_index_hard_disk_space
 
     String reference_transcriptome_basename = sub(basename(reference_transcriptome), ".fa.gz", "")
 
@@ -189,15 +216,18 @@ task build_kallisto_index {
         docker: "gcr.io/genomics-xavier/bulk_rna_seq"
         zones: "us-east1-b us-east1-c us-east1-d"
 		cpu: 4
-  		memory: "16GB"
+  		memory: "${build_kallisto_index_RAM}GB"
   		preemptible: 2
-  		disks: "local-disk 80 HDD"
+  		disks: "local-disk ${build_kallisto_index_hard_disk_space} HDD"
     }
 }
 
 task unzip_file {
     File zipped_file_1
     File zipped_file_2
+
+    Int unzip_file_RAM
+    Int unzip_file_hard_disk_space
 
     String unzipped_basename_1 = sub(basename(zipped_file_1), ".gz", "")
     String unzipped_basename_2 = sub(basename(zipped_file_2), ".gz", "")
@@ -221,9 +251,9 @@ task unzip_file {
         docker: "gcr.io/genomics-xavier/bulk_rna_seq"
         zones: "us-east1-b us-east1-c us-east1-d"
 		cpu: 4
-  		memory: "8GB"
+  		memory: "${unzip_file_RAM}GB"
   		preemptible: 2
-  		disks: "local-disk 80 HDD"
+  		disks: "local-disk ${unzip_file_hard_disk_space} HDD"
     }
 }
 
@@ -233,6 +263,9 @@ task perform_fastqc {
     File file_1
     File file_2
     String sample_name
+
+    Int perform_fastqc_RAM
+    Int perform_fastqc_hard_disk_space
 
     command <<<
         set -e
@@ -256,9 +289,9 @@ task perform_fastqc {
         docker: "gcr.io/genomics-xavier/bulk_rna_seq"
         zones: "us-east1-b us-east1-c us-east1-d"
         cpu: 4
-        memory: "4GB"
+        memory: "${perform_fastqc_RAM}GB"
         preemptible: 2
-        disks: "local-disk 80 HDD"
+        disks: "local-disk ${perform_fastqc_hard_disk_space} HDD"
     }
 }
 
@@ -269,6 +302,9 @@ task perform_kallisto_quantification {
     File file_1
     File file_2
     String sample_name
+
+    Int perform_kallisto_quantification_RAM
+    Int perform_kallisto_quantification_hard_disk_space
 
     command <<<
         set -e
@@ -296,9 +332,9 @@ task perform_kallisto_quantification {
         docker: "gcr.io/genomics-xavier/bulk_rna_seq"
         zones: "us-east1-b us-east1-c us-east1-d"
 		cpu: 12
-  		memory: "8GB"
+  		memory: "${perform_kallisto_quantification_RAM}GB"
   		preemptible: 2
-  		disks: "local-disk 80 HDD"
+  		disks: "local-disk ${perform_kallisto_quantification_hard_disk_space} HDD"
     }
 }
 
@@ -310,6 +346,9 @@ task counts_and_differential_expression_output {
     String samples_described_file
     String samples_compared_file
 
+    Int counts_and_differential_expression_output_RAM
+    Int counts_and_differential_expression_output_hard_disk_space
+
     command <<<
         set -e
 
@@ -317,7 +356,7 @@ task counts_and_differential_expression_output {
         #       doing so would probably be a better solution than copying from google bucket
 
         # copy transcript counts from google bucket
-        # NOTE: should probably change this to using output from last step
+        # TODO: should probably change this to using output from last step
         gsutil -m cp -r gs://genomics_xavier_bucket/${experiment_type}/${experiment_name}/transcript_counts ./
 
         if [ ! -z "${samples_described_file}" ]; then
@@ -360,9 +399,9 @@ task counts_and_differential_expression_output {
         docker: "gcr.io/genomics-xavier/bulk_rna_seq"
         zones: "us-east1-b us-east1-c us-east1-d"
 		cpu: 4
-  		memory: "40GB"
+  		memory: "${counts_and_differential_expression_output_RAM}GB"
   		preemptible: 2
-  		disks: "local-disk 100 HDD"
+  		disks: "local-disk ${counts_and_differential_expression_output_hard_disk_space} HDD"
     }
 }
 
@@ -370,6 +409,9 @@ task perform_multiqc {
     String experiment_name
     String experiment_type
     Array[File] transcript_counts_tar
+
+    Int perform_multiqc_RAM
+    Int perform_multiqc_hard_disk_space
 
     command <<<
         set -e
@@ -399,8 +441,8 @@ task perform_multiqc {
         docker: "gcr.io/genomics-xavier/bulk_rna_seq"
         zones: "us-east1-b us-east1-c us-east1-d"
 		cpu: 4
-  		memory: "8GB"
+  		memory: "${perform_multiqc_RAM}GB"
   		preemptible: 2
-  		disks: "local-disk 80 HDD"
+  		disks: "local-disk ${perform_multiqc_hard_disk_space} HDD"
     }
 }
