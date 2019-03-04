@@ -153,7 +153,7 @@ gene_names <- row.names(gene_object$counts)
 gene_counts <- data.table(gene_object$counts)
 gene_counts[, gene := gene_names]
 
-# replace ensembl gene ID with HGNC/MGI symbol
+# add HGNC/MGI symbol and rename ensembl gene ID
 # NOTE: hgnc/mgi symbol will still be under the name 'GENEID' because that is what tximport expects
 if (organism == 'human') {
     mart <- useMart(biomart = 'ENSEMBL_MART_ENSEMBL',
@@ -169,17 +169,22 @@ if (organism == 'human') {
 setnames(gene_map, 'ensembl_gene_id', 'gene')
 gene_counts <- merge(x = gene_counts, y = gene_map, all.x = TRUE, by = c('gene'))
 if (organism == 'human') {
+    gene_counts[, ensembl_id := gene]
     gene_counts[, gene := hgnc_symbol]
     gene_counts[, hgnc_symbol := NULL]
 } else if (organism == 'mouse') {
+    gene_counts[, ensembl_id := gene]
     gene_counts[, gene := mgi_symbol]
     gene_counts[, mgi_symbol := NULL]
 }
 
 # sum over rows with same hgnc/mgi symbol
-count_cols <- setdiff(names(gene_counts), 'gene')
+count_cols <- setdiff(names(gene_counts), c('gene', 'ensembl_id'))
 gene_counts[, (count_cols) := lapply(.SD, sum), by = gene, .SDcols = count_cols]
 gene_counts <- unique(gene_counts)
+
+# reorder columns
+setcolorder(gene_counts, c('gene', 'ensembl_id', count_cols))
 
 # remove missing genes
 gene_counts <- gene_counts[gene != '' & !is.na(gene)]
@@ -188,7 +193,7 @@ gene_counts <- gene_counts[gene != '' & !is.na(gene)]
 gene_counts <- gene_counts[order(gene)]
 
 # round counts and clean count names
-count_names <- setdiff(names(gene_counts), 'gene')
+count_names <- setdiff(names(gene_counts), c('gene', 'ensembl_id'))
 count_names_cleaned <- str_replace(count_names, '_001', '')
 setnames(gene_counts, count_names, count_names_cleaned)
 
