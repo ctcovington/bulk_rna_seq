@@ -36,7 +36,9 @@ workflow bulk_rna_seq {
             input_data_type = input_data_type,
             experiment_name = experiment_name,
             experiment_type = experiment_type,
-            read_pairs_file = read_pairs_file
+            read_pairs_file = read_pairs_file,
+            bcl2fastq_and_define_read_pairs_RAM = bcl2fastq_and_define_read_pairs_RAM,
+            bcl2fastq_and_define_read_pairs_disk_space = bcl2fastq_and_define_read_pairs_disk_space
     }
 
     # build reference transcriptome index for kallisto
@@ -44,7 +46,9 @@ workflow bulk_rna_seq {
         input:
             reference_transcriptome = reference_transcriptome,
             experiment_name = experiment_name,
-            experiment_type = experiment_type
+            experiment_type = experiment_type,
+            build_kallisto_index_RAM = build_kallisto_index_RAM,
+            build_kallisto_index_disk_space = build_kallisto_index_disk_space
     }
 
     # get pairs of reads
@@ -63,7 +67,9 @@ workflow bulk_rna_seq {
         call unzip_file {
             input:
                 zipped_file_1 = zipped_R1,
-                zipped_file_2 = zipped_R2
+                zipped_file_2 = zipped_R2,
+                unzip_file_RAM = unzip_file_RAM,
+                unzip_file_disk_space = unzip_file_disk_space
         }
 
         # perform fastqc
@@ -73,7 +79,9 @@ workflow bulk_rna_seq {
                 experiment_type = experiment_type,
                 file_1 = unzip_file.file_1,
                 file_2 = unzip_file.file_2,
-                sample_name = sample_name
+                sample_name = sample_name,
+                perform_fastqc_RAM = perform_fastqc_RAM,
+                perform_fastqc_disk_space = perform_fastqc_disk_space
         }
 
         # get transcript quantification
@@ -84,7 +92,9 @@ workflow bulk_rna_seq {
                 transcriptome_index = build_kallisto_index.reference_index,
                 file_1 = unzip_file.file_1,
                 file_2 = unzip_file.file_2,
-                sample_name = sample_name
+                sample_name = sample_name,
+                perform_kallisto_quantification_RAM = perform_kallisto_quantification_RAM,
+                perform_kallisto_quantification_disk_space = perform_kallisto_quantification_disk_space
         }
     }
 
@@ -97,7 +107,9 @@ workflow bulk_rna_seq {
             transcript_counts_tar = perform_kallisto_quantification.transcript_counts_tar,
             organism = organism,
             samples_described_file = samples_described_file,
-            samples_compared_file = samples_compared_file
+            samples_compared_file = samples_compared_file,
+            counts_and_differential_expression_output_RAM = counts_and_differential_expression_output_RAM,
+            counts_and_differential_expression_output_disk_space = counts_and_differential_expression_output_disk_space
     }
 
     # perform multiqc
@@ -106,6 +118,8 @@ workflow bulk_rna_seq {
             experiment_name = experiment_name,
             experiment_type = experiment_type,
             transcript_counts_tar = perform_kallisto_quantification.transcript_counts_tar,
+            perform_multiqc_RAM = perform_multiqc_RAM,
+            perform_multiqc_disk_space = perform_multiqc_disk_space
     }
 }
 
@@ -120,7 +134,7 @@ task bcl2fastq_and_define_read_pairs {
     String read_pairs_file
 
     Int bcl2fastq_and_define_read_pairs_RAM
-    Int bcl2fastq_and_define_read_pairs_hard_disk_space
+    Int bcl2fastq_and_define_read_pairs_disk_space
 
     command <<<
         set -e
@@ -163,7 +177,7 @@ task bcl2fastq_and_define_read_pairs {
 		cpu: 4
   		memory: "${bcl2fastq_and_define_read_pairs_RAM}GB"
   		preemptible: 2
-  		disks: "local-disk ${bcl2fastq_and_define_read_pairs_hard_disk_space} HDD"
+  		disks: "local-disk ${bcl2fastq_and_define_read_pairs_disk_space} HDD"
     }
 }
 
@@ -173,7 +187,7 @@ task build_kallisto_index {
     String experiment_type
 
     Int build_kallisto_index_RAM
-    Int build_kallisto_index_hard_disk_space
+    Int build_kallisto_index_disk_space
 
     String reference_transcriptome_basename = sub(basename(reference_transcriptome), ".fa.gz", "")
 
@@ -218,7 +232,7 @@ task build_kallisto_index {
 		cpu: 4
   		memory: "${build_kallisto_index_RAM}GB"
   		preemptible: 2
-  		disks: "local-disk ${build_kallisto_index_hard_disk_space} HDD"
+  		disks: "local-disk ${build_kallisto_index_disk_space} HDD"
     }
 }
 
@@ -227,7 +241,7 @@ task unzip_file {
     File zipped_file_2
 
     Int unzip_file_RAM
-    Int unzip_file_hard_disk_space
+    Int unzip_file_disk_space
 
     String unzipped_basename_1 = sub(basename(zipped_file_1), ".gz", "")
     String unzipped_basename_2 = sub(basename(zipped_file_2), ".gz", "")
@@ -253,7 +267,7 @@ task unzip_file {
 		cpu: 4
   		memory: "${unzip_file_RAM}GB"
   		preemptible: 2
-  		disks: "local-disk ${unzip_file_hard_disk_space} HDD"
+  		disks: "local-disk ${unzip_file_disk_space} HDD"
     }
 }
 
@@ -265,7 +279,7 @@ task perform_fastqc {
     String sample_name
 
     Int perform_fastqc_RAM
-    Int perform_fastqc_hard_disk_space
+    Int perform_fastqc_disk_space
 
     command <<<
         set -e
@@ -291,7 +305,7 @@ task perform_fastqc {
         cpu: 4
         memory: "${perform_fastqc_RAM}GB"
         preemptible: 2
-        disks: "local-disk ${perform_fastqc_hard_disk_space} HDD"
+        disks: "local-disk ${perform_fastqc_disk_space} HDD"
     }
 }
 
@@ -304,7 +318,7 @@ task perform_kallisto_quantification {
     String sample_name
 
     Int perform_kallisto_quantification_RAM
-    Int perform_kallisto_quantification_hard_disk_space
+    Int perform_kallisto_quantification_disk_space
 
     command <<<
         set -e
@@ -334,7 +348,7 @@ task perform_kallisto_quantification {
 		cpu: 12
   		memory: "${perform_kallisto_quantification_RAM}GB"
   		preemptible: 2
-  		disks: "local-disk ${perform_kallisto_quantification_hard_disk_space} HDD"
+  		disks: "local-disk ${perform_kallisto_quantification_disk_space} HDD"
     }
 }
 
@@ -347,7 +361,7 @@ task counts_and_differential_expression_output {
     String samples_compared_file
 
     Int counts_and_differential_expression_output_RAM
-    Int counts_and_differential_expression_output_hard_disk_space
+    Int counts_and_differential_expression_output_disk_space
 
     command <<<
         set -e
@@ -379,7 +393,7 @@ task counts_and_differential_expression_output {
         # run edgeR
         mkdir -p ./edgeR_output
         if [ -s samples_described.tsv ] && [ -s samples_compared.tsv ]; then
-            Rscript /scripts/run_edgeR.R ./kallisto_output/kallisto_counts.csv samples_described.tsv samples_compared.tsv ./edgeR_output
+            Rscript /scripts/run_edgeR.R ./kallisto_output/kallisto_gene_counts_rounded.csv samples_described.tsv samples_compared.tsv ./edgeR_output
         fi
 
         # tar output
@@ -401,7 +415,7 @@ task counts_and_differential_expression_output {
 		cpu: 4
   		memory: "${counts_and_differential_expression_output_RAM}GB"
   		preemptible: 2
-  		disks: "local-disk ${counts_and_differential_expression_output_hard_disk_space} HDD"
+  		disks: "local-disk ${counts_and_differential_expression_output_disk_space} HDD"
     }
 }
 
@@ -411,7 +425,7 @@ task perform_multiqc {
     Array[File] transcript_counts_tar
 
     Int perform_multiqc_RAM
-    Int perform_multiqc_hard_disk_space
+    Int perform_multiqc_disk_space
 
     command <<<
         set -e
@@ -443,6 +457,6 @@ task perform_multiqc {
 		cpu: 4
   		memory: "${perform_multiqc_RAM}GB"
   		preemptible: 2
-  		disks: "local-disk ${perform_multiqc_hard_disk_space} HDD"
+  		disks: "local-disk ${perform_multiqc_disk_space} HDD"
     }
 }
