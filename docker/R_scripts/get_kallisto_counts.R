@@ -181,7 +181,7 @@ if (organism == 'human') {
 # sum over rows with same hgnc/mgi symbol
 count_cols <- setdiff(names(gene_counts), c('gene', 'ensembl_id'))
 gene_counts[, (count_cols) := lapply(.SD, sum), by = gene, .SDcols = count_cols]
-gene_counts <- unique(gene_counts)
+gene_counts <- unique(gene_counts, by = c('gene'))
 
 # reorder columns
 setcolorder(gene_counts, c('gene', 'ensembl_id', count_cols))
