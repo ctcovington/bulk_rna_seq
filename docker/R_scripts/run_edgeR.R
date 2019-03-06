@@ -271,7 +271,7 @@ main <- function() {
 
     counts = read.csv(counts_file, row.names=1)
     # remove ensembl_id
-    counts <- subset(counts, select = -c('ensembl_id'))
+    counts <- subset(counts, select = -c(ensembl_id))
 
     design = get_simple_design(samples_file)
     rownames(design) <- make.names(str_trim(rownames(design)))
