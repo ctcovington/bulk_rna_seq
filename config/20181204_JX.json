@@ -17,27 +17,5 @@
     "## File Path Parameters ##": "Parameters identifying paths to files and directories",
     "bulk_rna_seq.read_pairs_file": "gs://genomics_xavier_bucket/WholeTranscriptome_RNASeq/20181204_JX/data/read_pairs.tsv",
     "bulk_rna_seq.samples_described_file": "gs://genomics_xavier_bucket/WholeTranscriptome_RNASeq/20181204_JX/data/samples_described.tsv",
-    "bulk_rna_seq.samples_compared_file": "gs://genomics_xavier_bucket/WholeTranscriptome_RNASeq/20181204_JX/data/samples_compared.tsv",
-
-    "## Memory Parameters ##": "Parameters specifying RAM and hard disk space for each task",
-    "bulk_rna_seq.bcl2fastq_and_define_read_pairs_RAM": 50,
-    "bulk_rna_seq.bcl2fastq_and_define_read_pairs_disk_space": 80,
-
-    "bulk_rna_seq.build_kallisto_index_RAM": 16,
-    "bulk_rna_seq.build_kallisto_index_disk_space": 30,
-
-    "bulk_rna_seq.unzip_file_RAM": 8,
-    "bulk_rna_seq.unzip_file_disk_space": 30,
-
-    "bulk_rna_seq.perform_fastqc_RAM": 4,
-    "bulk_rna_seq.perform_fastqc_disk_space": 30,
-
-    "bulk_rna_seq.perform_kallisto_quantification_RAM": 8,
-    "bulk_rna_seq.perform_kallisto_quantification_disk_space": 30,
-
-    "bulk_rna_seq.counts_and_differential_expression_output_RAM": 40,
-    "bulk_rna_seq.counts_and_differential_expression_output_disk_space": 50,
-
-    "bulk_rna_seq.perform_multiqc_RAM": 8,
-    "bulk_rna_seq.perform_multiqc_disk_space": 20
+    "bulk_rna_seq.samples_compared_file": "gs://genomics_xavier_bucket/WholeTranscriptome_RNASeq/20181204_JX/data/samples_compared.tsv"
 }
