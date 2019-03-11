@@ -15,9 +15,7 @@ workflow bulk_rna_seq {
             input_data_type = input_data_type,
             experiment_name = experiment_name,
             experiment_type = experiment_type,
-            read_pairs_file = read_pairs_file,
-            bcl2fastq_and_define_read_pairs_RAM = bcl2fastq_and_define_read_pairs_RAM,
-            bcl2fastq_and_define_read_pairs_disk_space = bcl2fastq_and_define_read_pairs_disk_space
+            read_pairs_file = read_pairs_file
     }
 
     # build reference transcriptome index for kallisto
@@ -25,9 +23,7 @@ workflow bulk_rna_seq {
         input:
             reference_transcriptome = reference_transcriptome,
             experiment_name = experiment_name,
-            experiment_type = experiment_type,
-            build_kallisto_index_RAM = build_kallisto_index_RAM,
-            build_kallisto_index_disk_space = build_kallisto_index_disk_space
+            experiment_type = experiment_type
     }
 
     # get pairs of reads
@@ -46,9 +42,7 @@ workflow bulk_rna_seq {
         call unzip_file {
             input:
                 zipped_file_1 = zipped_R1,
-                zipped_file_2 = zipped_R2,
-                unzip_file_RAM = unzip_file_RAM,
-                unzip_file_disk_space = unzip_file_disk_space
+                zipped_file_2 = zipped_R2
         }
 
         # perform fastqc
@@ -58,9 +52,7 @@ workflow bulk_rna_seq {
                 experiment_type = experiment_type,
                 file_1 = unzip_file.file_1,
                 file_2 = unzip_file.file_2,
-                sample_name = sample_name,
-                perform_fastqc_RAM = perform_fastqc_RAM,
-                perform_fastqc_disk_space = perform_fastqc_disk_space
+                sample_name = sample_name
         }
 
         # get transcript quantification
@@ -71,9 +63,7 @@ workflow bulk_rna_seq {
                 transcriptome_index = build_kallisto_index.reference_index,
                 file_1 = unzip_file.file_1,
                 file_2 = unzip_file.file_2,
-                sample_name = sample_name,
-                perform_kallisto_quantification_RAM = perform_kallisto_quantification_RAM,
-                perform_kallisto_quantification_disk_space = perform_kallisto_quantification_disk_space
+                sample_name = sample_name
         }
     }
 
@@ -86,9 +76,7 @@ workflow bulk_rna_seq {
             transcript_counts_tar = perform_kallisto_quantification.transcript_counts_tar,
             organism = organism,
             samples_described_file = samples_described_file,
-            samples_compared_file = samples_compared_file,
-            counts_and_differential_expression_output_RAM = counts_and_differential_expression_output_RAM,
-            counts_and_differential_expression_output_disk_space = counts_and_differential_expression_output_disk_space
+            samples_compared_file = samples_compared_file
     }
 
     # perform multiqc
@@ -96,9 +84,7 @@ workflow bulk_rna_seq {
         input:
             experiment_name = experiment_name,
             experiment_type = experiment_type,
-            transcript_counts_tar = perform_kallisto_quantification.transcript_counts_tar,
-            perform_multiqc_RAM = perform_multiqc_RAM,
-            perform_multiqc_disk_space = perform_multiqc_disk_space
+            transcript_counts_tar = perform_kallisto_quantification.transcript_counts_tar
     }
 }
 
