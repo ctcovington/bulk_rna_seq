@@ -212,6 +212,10 @@ run_glm_batch_contrasts <- function(counts, design, contrasts, out.dir) {
     print(comparison.coeffs)
     lrt = glmLRT(fit, contrast=comparison.coeffs)
     ranked = topTags(lrt, n=NULL, sort.by = 'PValue')
+
+    # TODO: add Lingfei suggestions here?
+    # for each gene in ranked, add logCPM for each
+
     out.file = file.path(out.dir, paste(comparison.name, 'edgeR', 'tsv', sep='.'))
     write.table(ranked, file=out.file, sep='\t', quote=F, row.names=T)
   }
@@ -244,7 +248,7 @@ run_classic_batch_contrasts <- function(counts, samples, comparisons, out.dir) {
 combine_edgeR_results <- function(out_dir) {
     # get list of files
     individual_files <- file.path(out_dir, list.files(out_dir))
-    individual_files <- individual_files[str_detect(individual_files, '.edgeR.tsv')]
+    individual_files <- individual_files[str_detect(individual_files, '\\.edgeR\\.tsv')]
     # individual_files <- individual_files[individual_files != 'combined_edgeR.tsv']
 
     individual_file_list <- vector('list', length = length(individual_files))
