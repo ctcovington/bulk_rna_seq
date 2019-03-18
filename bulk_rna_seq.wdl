@@ -148,9 +148,6 @@ task build_kallisto_index {
     String experiment_name
     String experiment_type
 
-    Int build_kallisto_index_RAM
-    Int build_kallisto_index_disk_space
-
     String reference_transcriptome_basename = sub(basename(reference_transcriptome), ".fa.gz", "")
 
     command <<<
@@ -202,9 +199,6 @@ task unzip_file {
     File zipped_file_1
     File zipped_file_2
 
-    Int unzip_file_RAM
-    Int unzip_file_disk_space
-
     String unzipped_basename_1 = sub(basename(zipped_file_1), ".gz", "")
     String unzipped_basename_2 = sub(basename(zipped_file_2), ".gz", "")
 
@@ -239,9 +233,6 @@ task perform_fastqc {
     File file_1
     File file_2
     String sample_name
-
-    Int perform_fastqc_RAM
-    Int perform_fastqc_disk_space
 
     command <<<
         set -e
@@ -278,9 +269,6 @@ task perform_kallisto_quantification {
     File file_1
     File file_2
     String sample_name
-
-    Int perform_kallisto_quantification_RAM
-    Int perform_kallisto_quantification_disk_space
 
     command <<<
         set -e
@@ -321,9 +309,6 @@ task counts_and_differential_expression_output {
     String organism
     String samples_described_file
     String samples_compared_file
-
-    Int counts_and_differential_expression_output_RAM
-    Int counts_and_differential_expression_output_disk_space
 
     command <<<
         set -e
@@ -385,9 +370,6 @@ task perform_multiqc {
     String experiment_name
     String experiment_type
     Array[File] transcript_counts_tar
-
-    Int perform_multiqc_RAM
-    Int perform_multiqc_disk_space
 
     command <<<
         set -e
