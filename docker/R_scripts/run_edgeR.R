@@ -249,7 +249,7 @@ combine_edgeR_results <- function(out_dir) {
     # get list of files
     individual_files <- file.path(out_dir, list.files(out_dir))
     individual_files <- individual_files[str_detect(individual_files, '\\.edgeR\\.tsv')]
-    # individual_files <- individual_files[individual_files != 'combined_edgeR.tsv']
+    individual_files <- individual_files[basename(individual_files) != 'combined_edgeR.tsv']
 
     individual_file_list <- vector('list', length = length(individual_files))
     for (i in 1:length(individual_files)) {
