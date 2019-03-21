@@ -222,9 +222,6 @@ run_glm_batch_contrasts <- function(counts, design, contrasts, logCPM_threshold,
     lrt = glmLRT(fit, contrast=comparison.coeffs)
     ranked = topTags(lrt, n=NULL, sort.by = 'PValue')
 
-    # TODO: add Lingfei suggestions here?
-    # for each gene in ranked, add logCPM for each
-
     #################
     # Replace avg(logCPM) at gene level to avg(logCPM) for gene only in
     # whichever condition is more highly expressed
@@ -339,7 +336,7 @@ main <- function() {
     counts_file <- args[1]
     samples_file <- args[2]
     comparisons_file <- args[3]
-    log_CPM_threshold <- args[4]
+    logCPM_threshold <- args[4]
     out_dir <- args[5]
     dir.create(out_dir, showWarnings = FALSE)
 
