@@ -9,6 +9,8 @@ workflow bulk_rna_seq {
     String samples_described_file
     String samples_compared_file
 
+    Float logCPM_threshold
+
     # run bcl2fastq
     call bcl2fastq_and_define_read_pairs {
         input:
@@ -76,7 +78,8 @@ workflow bulk_rna_seq {
             transcript_counts_tar = perform_kallisto_quantification.transcript_counts_tar,
             organism = organism,
             samples_described_file = samples_described_file,
-            samples_compared_file = samples_compared_file
+            samples_compared_file = samples_compared_file,
+            logCPM_threshold = logCPM_threshold
     }
 
     # perform multiqc
@@ -309,6 +312,7 @@ task counts_and_differential_expression_output {
     String organism
     String samples_described_file
     String samples_compared_file
+    Float logCPM_threshold
 
     command <<<
         set -e
@@ -340,7 +344,7 @@ task counts_and_differential_expression_output {
         # run edgeR
         mkdir -p ./edgeR_output
         if [ -s samples_described.tsv ] && [ -s samples_compared.tsv ]; then
-            Rscript /scripts/run_edgeR.R ./kallisto_output/kallisto_gene_counts_rounded.csv samples_described.tsv samples_compared.tsv ./edgeR_output
+            Rscript /scripts/run_edgeR.R ./kallisto_output/kallisto_gene_counts_rounded.csv samples_described.tsv samples_compared.tsv ${logCPM_threshold} ./edgeR_output
         fi
 
         # tar output
