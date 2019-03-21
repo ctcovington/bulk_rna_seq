@@ -168,9 +168,18 @@ get_complex_design <- function(samples.described.file) {
 
 get_simple_contrasts <- function(samples.compared.file, design) {
   comparison.names = readLines(samples.compared.file)
-  comparison.names.sanitized = make.names(comparison.names)
-  comparison.pairs = gsub('_vs_', ' ', comparison.names.sanitized)
-  comparison.pairs = read.table(textConnection(comparison.pairs))
+
+  if (comparison.names[1] == 'all_vs_all') {
+      # get every pair of conditions
+      pairs = combn(colnames(design), m = 2)
+      comparison.pairs = data.frame(V1 = pairs[1,],
+                                    V2 = pairs[2,])
+      comparison.names = paste(comparison.pairs$V1, comparison.pairs$V2, sep = '_vs_')
+  } else {
+      comparison.names.sanitized = make.names(comparison.names)
+      comparison.pairs = gsub('_vs_', ' ', comparison.names.sanitized)
+      comparison.pairs = read.table(textConnection(comparison.pairs))
+  }
   # our current convention is to map A_vs_B to the model expression A - B
   # i.e. our DE analyses examine A wrt B - CHANGED
 
@@ -191,7 +200,7 @@ get_simple_contrasts <- function(samples.compared.file, design) {
   return (contra)
 }
 
-run_glm_batch_contrasts <- function(counts, design, contrasts, out.dir) {
+run_glm_batch_contrasts <- function(counts, design, contrasts, logCPM_threshold, out.dir) {
   dge = DGEList(counts, remove.zeros=T)
   dge = calcNormFactors(dge, method='TMM')
 
@@ -216,8 +225,59 @@ run_glm_batch_contrasts <- function(counts, design, contrasts, out.dir) {
     # TODO: add Lingfei suggestions here?
     # for each gene in ranked, add logCPM for each
 
+    #################
+    # Replace avg(logCPM) at gene level to avg(logCPM) for gene only in
+    # whichever condition is more highly expressed
+    #################
+    # convert ranked to data.table for easier managing
+    ranked_dt <- data.table(ranked$table)
+    ranked_dt[, gene := row.names(ranked$table)]
+    setcolorder(ranked_dt, c('gene', setdiff(names(ranked_dt), 'gene')))
+
+    # get conditions in contrast
+    cond_1 <- str_split(colnames(contrasts)[ii], '_vs_')[[1]][1]
+    cond_2 <- str_split(colnames(contrasts)[ii], '_vs_')[[1]][2]
+
+    # create data table of sample counts pertaining to each condition
+    cond_1_inclusion <- lrt$design[, c(cond_1)]
+    cond_1_samples <- names(cond_1_inclusion[cond_1_inclusion == 1])
+    cond_1_counts_dt <- data.table(dge$counts[, (cond_1_samples)])
+    # cond_1_counts_dt[, gene := row.names(dge$counts)]
+
+    cond_2_inclusion <- lrt$design[, c(cond_2)]
+    cond_2_samples <- names(cond_2_inclusion[cond_2_inclusion == 1])
+    cond_2_counts_dt <- data.table(dge$counts[, (cond_2_samples)])
+    # cond_1_counts_dt[, gene := row.names(dge$counts)]
+
+    # create logCPM counts table for each condition -- first replace values with CPM, then average over samples and take log2 value
+    cond_1_counts_dt[, names(cond_1_counts_dt) := lapply(.SD, function(x) x / sum(x) * 10^6), .SDcols = names(cond_1_counts_dt)]
+    cond_1_logCPM_vals <- log2(rowMeans(cond_1_counts_dt))
+    cond_2_counts_dt[, names(cond_2_counts_dt) := lapply(.SD, function(x) x / sum(x) * 10^6), .SDcols = names(cond_2_counts_dt)]
+    cond_2_logCPM_vals <- log2(rowMeans(cond_2_counts_dt))
+
+    # pair logCPM values with gene names and get max for each
+    logCPM_dt <- data.table(gene = row.names(dge$counts),
+                            cond_1_logCPM = cond_1_logCPM_vals,
+                            cond_2_logCPM = cond_2_logCPM_vals)
+    logCPM_dt[, max_logCPM := pmax(cond_1_logCPM, cond_2_logCPM)]
+
+    # replace ranked_dt logCPM value with new value
+    ranked_dt <- merge(x = ranked_dt, y = logCPM_dt, by = c('gene'))
+    ranked_dt[, logCPM := max_logCPM]
+    ranked_dt[, c('cond_1_logCPM', 'cond_2_logCPM', 'max_logCPM') := NULL]
+
+    # subset ranked_dt to genes above logCPM treshold, perform FDR separately on these, then merge back onto ranked_dt
+    ranked_dt[, FDR := 1]
+    ranked_dt_sub <- ranked_dt[logCPM >= logCPM_threshold]
+    ranked_dt_sub[, FDR_sub := p.adjust(PValue, method = 'BH')]
+    ranked_dt <- merge(x = ranked_dt, y = ranked_dt_sub[, c('gene', 'FDR_sub')], by = c('gene'), all.x = TRUE)
+    ranked_dt[is.na(FDR_sub), FDR_sub := 1]
+    ranked_dt[, FDR := pmin(FDR, FDR_sub)]
+    ranked_dt[, FDR_sub := NULL]
+
+    # write table to file
     out.file = file.path(out.dir, paste(comparison.name, 'edgeR', 'tsv', sep='.'))
-    write.table(ranked, file=out.file, sep='\t', quote=F, row.names=T)
+    write.table(ranked_dt, file=out.file, sep='\t', quote=F, row.names=T)
   }
 }
 
@@ -256,10 +316,19 @@ combine_edgeR_results <- function(out_dir) {
         individual_file_list[[i]] <- fread(individual_files[i], sep = '\t')
         comparison_name <- str_replace(basename(individual_files[i]), '.edgeR.tsv', '')
         individual_file_list[[i]][, comparison := comparison_name]
+        individual_file_list[[i]][, V1 := NULL]
     }
     combined_edgeR <- rbindlist(individual_file_list)
-    setnames(combined_edgeR, 'V1', 'gene')
-    combined_edgeR[, FDR := p.adjust(PValue, method = 'BH')]
+
+    # calculate FDR for gene/comparison combinations satisfying minimum logCPM threshold
+    combined_edgeR[, FDR := 1]
+    combined_edgeR_sub <- combined_edgeR[logCPM >= logCPM_threshold]
+    combined_edgeR_sub[, FDR_sub := p.adjust(PValue, method = 'BH')]
+    combined_edgeR <- merge(x = combined_edgeR, y = combined_edgeR_sub[, c('gene', 'comparison', 'FDR_sub')], by = c('gene', 'comparison'), all.x = TRUE)
+    combined_edgeR[is.na(FDR_sub), FDR_sub := 1]
+    combined_edgeR[, FDR := pmin(FDR, FDR_sub)]
+    combined_edgeR[, FDR_sub := NULL]
+
     combined_edgeR <- setkey(combined_edgeR, by = 'FDR')
     fwrite(combined_edgeR, file.path(out_dir, 'combined_edgeR.tsv'), sep = '\t')
 }
@@ -270,7 +339,8 @@ main <- function() {
     counts_file <- args[1]
     samples_file <- args[2]
     comparisons_file <- args[3]
-    out_dir <- args[4]
+    log_CPM_threshold <- args[4]
+    out_dir <- args[5]
     dir.create(out_dir, showWarnings = FALSE)
 
     counts = read.csv(counts_file, row.names=1)
@@ -297,7 +367,7 @@ main <- function() {
     counts.new <- na.omit(counts.new)
 
     # run DE analysis
-    run_glm_batch_contrasts(counts.new, design, contrasts, out_dir)
+    run_glm_batch_contrasts(counts.new, design, contrasts, logCPM_threshold, out_dir)
 
     # combine all edgeR results
     combine_edgeR_results(out_dir)
