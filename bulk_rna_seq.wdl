@@ -9,7 +9,7 @@ workflow bulk_rna_seq {
     String samples_described_file
     String samples_compared_file
 
-    Float logCPM_threshold
+    Float? logCPM_threshold = 1
 
     # run bcl2fastq
     call bcl2fastq_and_define_read_pairs {
