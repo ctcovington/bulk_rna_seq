@@ -13,6 +13,7 @@
     "bulk_rna_seq.reference_transcriptome": "gs://rnaseq_reference_data/transcriptome/Mus_musculus.GRCm38.cdna.all.fa.gz",
 
     "## Analysis Parameters ##": "Parameters related to the analysis of the experiment",
+    "bulk_rna_seq.logCPM_threshold": 1,
 
     "## File Path Parameters ##": "Parameters identifying paths to files and directories",
     "bulk_rna_seq.read_pairs_file": "gs://genomics_xavier_bucket/WholeTranscriptome_RNASeq/20180709_JX/nextseq/data/read_pairs.tsv",
