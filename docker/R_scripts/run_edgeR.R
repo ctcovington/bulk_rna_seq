@@ -302,7 +302,7 @@ run_classic_batch_contrasts <- function(counts, samples, comparisons, out.dir) {
   }
 }
 
-combine_edgeR_results <- function(out_dir) {
+combine_edgeR_results <- function(out_dir, logCPM_threshold) {
     # get list of files
     individual_files <- file.path(out_dir, list.files(out_dir))
     individual_files <- individual_files[str_detect(individual_files, '\\.edgeR\\.tsv')]
@@ -367,7 +367,7 @@ main <- function() {
     run_glm_batch_contrasts(counts.new, design, contrasts, logCPM_threshold, out_dir)
 
     # combine all edgeR results
-    combine_edgeR_results(out_dir)
+    combine_edgeR_results(out_dir, logCPM_threshold)
 
 }
 
