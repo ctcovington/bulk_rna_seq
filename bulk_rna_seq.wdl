@@ -9,6 +9,7 @@ workflow bulk_rna_seq {
     String samples_described_file
     String samples_compared_file
 
+    Int? cycle_number = 31
     Float? logCPM_threshold = 1
 
     # run bcl2fastq
@@ -24,6 +25,7 @@ workflow bulk_rna_seq {
     call build_kallisto_index {
         input:
             reference_transcriptome = reference_transcriptome,
+            cycle_number = cycle_number,
             experiment_name = experiment_name,
             experiment_type = experiment_type
     }
@@ -147,6 +149,7 @@ task bcl2fastq_and_define_read_pairs {
 }
 
 task build_kallisto_index {
+    Int cycle_number
     File reference_transcriptome
     String experiment_name
     String experiment_type
@@ -162,7 +165,7 @@ task build_kallisto_index {
         # check if reference index already exists in google cloud bucket
         index_exists=0
         for index in $indices; do
-            if [[ $index == *"${reference_transcriptome_basename}.idx" ]]; then
+            if [[ $index == *"${reference_transcriptome_basename}_cycle${cycle_number}.idx" ]]; then
                 index_exists=1
                 break
             fi
@@ -172,20 +175,21 @@ task build_kallisto_index {
         if [! -z "$indices" ] && [[ $index_exists == 1 ]]; then
             echo "reference index already exists"
             # localize reference index
-            gsutil -m cp gs://rnaseq_reference_data/kallisto_indices/${reference_transcriptome_basename}.idx ./
+            gsutil -m cp gs://rnaseq_reference_data/kallisto_indices/${reference_transcriptome_basename}_cycle${cycle_number}.idx ./
         else
             echo "generating reference index"
             # generate reference index
-            kallisto index --index=${reference_transcriptome_basename}.idx \
+            kallisto index --index=${reference_transcriptome_basename}_cycle${cycle_number}.idx \
+                           --kmer-size=${cycle_number} \
                            ${reference_transcriptome}
 
             # copy reference index to google bucket
-            gsutil -m cp ${reference_transcriptome_basename}.idx gs://rnaseq_reference_data/kallisto_indices/
+            gsutil -m cp ${reference_transcriptome_basename}_cycle${cycle_number}.idx gs://rnaseq_reference_data/kallisto_indices/
         fi
     >>>
 
     output {
-        File reference_index = "${reference_transcriptome_basename}.idx"
+        File reference_index = "${reference_transcriptome_basename}_cycle${cycle_number}.idx"
     }
 
     runtime {

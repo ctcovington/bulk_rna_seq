@@ -11,6 +11,7 @@
 
     "## Preprocessing Parameters ##": "Parameters related to data processing",
     "bulk_rna_seq.reference_transcriptome": "gs://rnaseq_reference_data/transcriptome/Mus_musculus.GRCm38.cdna.all.fa.gz",
+    "bulk_rna_seq.cycle_number": 31,
 
     "## Analysis Parameters ##": "Parameters related to the analysis of the experiment",
     "bulk_rna_seq.logCPM_threshold": 1,
