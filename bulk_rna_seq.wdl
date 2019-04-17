@@ -1,4 +1,4 @@
-workflow bulk_rna_seq {
+ho  workflow bulk_rna_seq {
     String experiment_name
     String experiment_type
     String organism
@@ -149,8 +149,8 @@ task bcl2fastq_and_define_read_pairs {
 }
 
 task build_kallisto_index {
-    Int cycle_number
     File reference_transcriptome
+    Int cycle_number
     String experiment_name
     String experiment_type
 
