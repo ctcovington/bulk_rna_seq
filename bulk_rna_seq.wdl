@@ -1,4 +1,4 @@
-ho  workflow bulk_rna_seq {
+workflow bulk_rna_seq {
     String experiment_name
     String experiment_type
     String organism
